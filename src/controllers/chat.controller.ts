@@ -8,6 +8,7 @@ import { AgentBuilder } from '../types/chat';
 import { makeChain } from '../utils/conversationalChainBuilder';
 import { getFormattedChatHistory, sanitizeQuestion } from '../utils/formatter';
 import { VectorStore } from 'langchain/vectorstores/base';
+import util from 'util';
 
 let vectorStore: VectorStore;
 
@@ -35,14 +36,28 @@ const getResponse = async (
     req: Request,
     res: Response,
 ) => {
+
+    console.log("chat API: ",util.inspect(req.body, { showHidden: false, depth: null }));
+    const { question, version, history } = req.body;
+
+    if (req.method !== 'POST') {
+        res.status(405).json({ error: 'Method not allowed' });
+        return;
+    }
+
+    if (!question) {
+        return res.status(400).json({ message: 'No question in the request' });
+    }
+
     try {
-        const { question, history, version } = req.body;
+        console.log('Calling agent version ', version);
 
         const agent = await agentBuilders[version](vectorStore, getFormattedChatHistory(history));
 
         const response = await agent(sanitizeQuestion(question));
 
-        return res.status(200).send({ response });
+        console.log('response', response);
+        res.status(200).json({ text: response });
     } catch (error: any) {
         console.log('error', error);
         res.status(500).json({ error: error.message || 'Something went wrong' });
