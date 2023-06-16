@@ -16,6 +16,8 @@
     "deploy:dev": "pm2 start ecosystem.config.js --only dev"
   },
   "dependencies": {
+    "@pinecone-database/pinecone": "0.0.14",
+    "langchain": "^0.0.84",
     "bcrypt": "^5.0.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.13.2",

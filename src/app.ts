@@ -19,19 +19,18 @@ export class App {
   public port: string | number;
 
   constructor(routes: Routes[]) {
-    console.log("inside app");
     this.app = express();
     this.env = NODE_ENV || 'development';
     this.port = PORT || 3000;
 
-    //this.initializeMiddlewares();
-    //this.initializeRoutes(routes);
-    //this.initializeSwagger();
-    //this.initializeErrorHandling();
+    this.initializeMiddlewares();
+    this.initializeRoutes(routes);
+    this.initializeSwagger();
+    this.initializeErrorHandling();
+    
   }
 
   public listen() {
-    console.log("listening")
     this.app.listen(this.port, () => {
       logger.info(`=================================`);
       logger.info(`======= ENV: ${this.env} =======`);
