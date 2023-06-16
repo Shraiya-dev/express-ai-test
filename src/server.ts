@@ -12,7 +12,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.get('/', function (req, res) {
-    res.send('Hello World!')
+    res.send('Soon to be launched: Ustaad')
 })
 
 app.post("/chat/ustaad", getResponse)
