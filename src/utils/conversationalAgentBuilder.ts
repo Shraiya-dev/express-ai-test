@@ -103,7 +103,7 @@ export async function makeAgent(vectorstore: VectorStore, pastMessages: BaseChat
 
   const memory = new BufferWindowMemory({
     chatHistory: new ChatMessageHistory(pastMessages),
-    k: 3,
+    k: 5,
     memoryKey: "chat_history",
     returnMessages: true,
   });
