@@ -9,6 +9,7 @@ import { renderTemplate } from 'langchain/prompts';
 import { OutputParserException } from 'langchain/schema/output_parser';
 import { AIAgent } from '../types/chat';
 import { VectorStore } from 'langchain/vectorstores/base';
+import { WarfrontEnv } from './warfront';
 
 export const makeRetrievalQAChain = (vectorstore: VectorStore, model: any) => {
   const chain = RetrievalQAChain.fromLLM(
@@ -87,25 +88,31 @@ Its purpose is to enhance the efficiency of users by delivering reliable informa
 Ustaad AI ensures accuracy by cross-checking data with the knowledge base and continually improves through user feedback.
 Its goal is to empower construction workers and contractors, improving job satisfaction and productivity.`
 
+const HELICONT_BASE_URL = "https://oai.hconeai.com/v1"
+
 export async function makeAgent(vectorstore: VectorStore, pastMessages: BaseChatMessage[]): Promise<AIAgent> {
 
-  return async function (params: {input: string, userId: string, requestId: string, userType: string}) {
+  return async function (params: {input: string, userId: string, requestId: string, userType: string, environment}) {
     const {
       input,
       userId,
       userType,
-      requestId
+      requestId,
+      environment
     } = params;
 
+    const helicontAuth = (environment === WarfrontEnv.PROD) 
+      ? process.env.PH_HELICONE_PROD_API_KEY 
+      : process.env.PH_HELICONE_STAGE_API_KEY
+
     const model = new ChatOpenAI({ temperature: 0 }, {
-      basePath: "https://oai.hconeai.com/v1",
+      basePath: HELICONT_BASE_URL,
       baseOptions: {
         headers: {
-          "Helicone-Auth": `Bearer sk-kx3zgly-czzenvq-xwzvrii-b75y72i`,
+          "Helicone-Auth": `Bearer ${helicontAuth}`,
           "Helicone-Property-RequestId": requestId,
           "Helicone-Property-userType": userType,
           "Helicone-User-Id": userId,
-          
         }
       }
     });
