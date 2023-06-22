@@ -3,6 +3,7 @@ import { ConversationalRetrievalQAChain } from 'langchain/chains';
 import { AIAgent } from '../types/chat';
 import { BaseChatMessage } from 'langchain/schema';
 import { VectorStore } from 'langchain/vectorstores/base';
+import { WarfrontEnv } from './warfront';
 
 const CONDENSE_PROMPT = `Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question.
 
@@ -38,9 +39,9 @@ export const makeChain = (vectorstore: VectorStore, pastMessages: BaseChatMessag
     },
   );
 
-  return Promise.resolve(async function (input: string) {
+  return Promise.resolve(async function (params: { input: string; userId: string; requestId: string, userType: string; environment: WarfrontEnv }) {
     const response = await chain.call({
-      question: input,
+      question: params.input,
       chat_history: pastMessages || [],
     });
 

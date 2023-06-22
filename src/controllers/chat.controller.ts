@@ -38,7 +38,7 @@ const getResponse = async (
 ) => {
 
     console.log("chat API: ",util.inspect(req.body, { showHidden: false, depth: null }));
-    const { question, version, history } = req.body;
+    const { question, version, history, requestId, userId, userType, environment } = req.body;
 
     if (req.method !== 'POST') {
         res.status(405).json({ error: 'Method not allowed' });
@@ -54,8 +54,7 @@ const getResponse = async (
 
         const agent = await agentBuilders[version](vectorStore, getFormattedChatHistory(history));
 
-        const response = await agent(sanitizeQuestion(question));
-
+        const response = await agent({input: sanitizeQuestion(question), requestId, userId, userType, environment});
         console.log('response', response);
         res.status(200).json({ text: response });
     } catch (error: any) {
