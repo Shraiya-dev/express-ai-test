@@ -10,8 +10,9 @@ import { OutputParserException } from 'langchain/schema/output_parser';
 import { AIAgent } from '../types/chat';
 import { VectorStore } from 'langchain/vectorstores/base';
 import { WarfrontEnv } from './warfront';
+import { BaseLanguageModel } from 'langchain/dist/base_language';
 
-export const makeRetrievalQAChain = (vectorstore: VectorStore, model: any) => {
+export const makeRetrievalQAChain = (vectorstore: VectorStore, model: BaseLanguageModel) => {
   const chain = RetrievalQAChain.fromLLM(
     model,
     vectorstore.asRetriever(),
@@ -22,7 +23,7 @@ export const makeRetrievalQAChain = (vectorstore: VectorStore, model: any) => {
   return chain;
 };
 
-export function makeRetrivalQATool(vectorstore: VectorStore, model: any) {
+export function makeRetrivalQATool(vectorstore: VectorStore, model: BaseLanguageModel) {
   return new ChainTool({
     name: "nbc-qa",
     description:
@@ -88,7 +89,7 @@ Its purpose is to enhance the efficiency of users by delivering reliable informa
 Ustaad AI ensures accuracy by cross-checking data with the knowledge base and continually improves through user feedback.
 Its goal is to empower construction workers and contractors, improving job satisfaction and productivity.`
 
-const HELICONT_BASE_URL = "https://oai.hconeai.com/v1"
+const HELICONE_BASE_URL = "https://oai.hconeai.com/v1"
 
 export async function makeAgent(vectorstore: VectorStore, pastMessages: BaseChatMessage[]): Promise<AIAgent> {
 
@@ -101,15 +102,15 @@ export async function makeAgent(vectorstore: VectorStore, pastMessages: BaseChat
       environment
     } = params;
 
-    const helicontAuth = (environment === WarfrontEnv.PROD) 
+    const heliconeAuth = (environment === WarfrontEnv.PROD) 
       ? process.env.PH_HELICONE_PROD_API_KEY 
       : process.env.PH_HELICONE_STAGE_API_KEY
 
     const model = new ChatOpenAI({ temperature: 0 }, {
-      basePath: HELICONT_BASE_URL,
+      basePath: HELICONE_BASE_URL,
       baseOptions: {
         headers: {
-          "Helicone-Auth": `Bearer ${helicontAuth}`,
+          "Helicone-Auth": `Bearer ${heliconeAuth}`,
           "Helicone-Property-RequestId": requestId,
           "Helicone-Property-userType": userType,
           "Helicone-User-Id": userId,
