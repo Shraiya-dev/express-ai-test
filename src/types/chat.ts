@@ -11,4 +11,4 @@ export type Message = {
 
 export type AgentBuilder = (vectorstore: VectorStore, pastMessages: BaseChatMessage[] ) => Promise<AIAgent>;
 
-export type AIAgent = (input: string) => Promise<string>;
+export type AIAgent = (params: {input: string; userId: string; requestId: string, userType: string}) => Promise<string>;

@@ -1,18 +1,16 @@
 import { RetrievalQAChain } from 'langchain/chains';
 import { ChatOpenAI } from "langchain/chat_models/openai";
-import { AgentActionOutputParser, AgentArgs, AgentExecutor, ChatAgent, ChatConversationalAgent, ChatConversationalCreatePromptArgs, ChatCreatePromptArgs, ZeroShotAgent, initializeAgentExecutorWithOptions } from "langchain/agents";
+import { AgentActionOutputParser, AgentExecutor, ChatConversationalAgent, ChatConversationalCreatePromptArgs, ChatCreatePromptArgs, ZeroShotAgent, initializeAgentExecutorWithOptions } from "langchain/agents";
 import { Calculator } from "langchain/tools/calculator";
 import { SerpAPI, ChainTool } from "langchain/tools";
 import { BufferWindowMemory, ChatMessageHistory } from 'langchain/memory';
-import { AgentAction, AgentFinish, BaseChatMessage } from 'langchain/schema';
+import { AgentAction, AgentFinish, BaseChatMessage, ChainValues, LLMResult } from 'langchain/schema';
 import { renderTemplate } from 'langchain/prompts';
 import { OutputParserException } from 'langchain/schema/output_parser';
 import { AIAgent } from '../types/chat';
 import { VectorStore } from 'langchain/vectorstores/base';
 
-export const model = new ChatOpenAI({ temperature: 0 });
-
-export const makeRetrievalQAChain = (vectorstore: VectorStore) => {
+export const makeRetrievalQAChain = (vectorstore: VectorStore, model: any) => {
   const chain = RetrievalQAChain.fromLLM(
     model,
     vectorstore.asRetriever(),
@@ -23,12 +21,12 @@ export const makeRetrievalQAChain = (vectorstore: VectorStore) => {
   return chain;
 };
 
-export function makeRetrivalQATool(vectorstore: VectorStore) {
+export function makeRetrivalQATool(vectorstore: VectorStore, model: any) {
   return new ChainTool({
     name: "nbc-qa",
     description:
       "Use this tool to retrieve any information construction materials, building codes and regulations, construction techniques and best practices, construction equipment, construction management, health and safety guidelines, and environmental considerations. DO NOT use this tool of the question is not related to construction.",
-    chain: makeRetrievalQAChain(vectorstore),
+    chain: makeRetrievalQAChain(vectorstore, model),
     returnDirect: true
   });
 }
@@ -90,51 +88,69 @@ Ustaad AI ensures accuracy by cross-checking data with the knowledge base and co
 Its goal is to empower construction workers and contractors, improving job satisfaction and productivity.`
 
 export async function makeAgent(vectorstore: VectorStore, pastMessages: BaseChatMessage[]): Promise<AIAgent> {
-  const model = new ChatOpenAI({ temperature: 0 });
 
-  const tools = [
-    new SerpAPI(process.env.SERPAPI_API_KEY, {
-      hl: "en",
-      gl: "in",
-    }),
-    new Calculator(),
-    makeRetrivalQATool(vectorstore)
-  ];
+  return async function (params: {input: string, userId: string, requestId: string, userType: string}) {
+    const {
+      input,
+      userId,
+      userType,
+      requestId
+    } = params;
 
-  const memory = new BufferWindowMemory({
-    chatHistory: new ChatMessageHistory(pastMessages),
-    k: 5,
-    memoryKey: "chat_history",
-    returnMessages: true,
-  });
+    const model = new ChatOpenAI({ temperature: 0 }, {
+      basePath: "https://oai.hconeai.com/v1",
+      baseOptions: {
+        headers: {
+          "Helicone-Auth": `Bearer sk-kx3zgly-czzenvq-xwzvrii-b75y72i`,
+          "Helicone-Property-RequestId": requestId,
+          "Helicone-Property-userType": userType,
+          "Helicone-User-Id": userId,
+          
+        }
+      }
+    });
 
-  const opts = {
-    memoryKey: "chat_history",
-    verbose: true,
-    // maxIterations: 3,
-  }
-
-  const promptArgs: ChatConversationalCreatePromptArgs = {
-    humanMessage: DEFAULT_SUFFIX,
-    systemMessage: DEFAULT_PREFIX,
-    outputParser: new IndependentChatConversationalAgentOutputParser(
-      tools.map((tool) => tool.name),
-    )
-  }
-
-  const executor = AgentExecutor.fromAgentAndTools({
-    agent: ChatConversationalAgent.fromLLMAndTools(
-      model, 
-      tools,
-      {
-        ...promptArgs,
+    const tools = [
+      new SerpAPI(process.env.SERPAPI_API_KEY, {
+        hl: "en",
+        gl: "in",
       }),
-    tools,
-    memory,
-    ...opts,
-  });
-
-  return async function (input: string) {
+      new Calculator(),
+      makeRetrivalQATool(vectorstore, model)
+    ];
+  
+    const memory = new BufferWindowMemory({
+      chatHistory: new ChatMessageHistory(pastMessages),
+      k: 5,
+      memoryKey: "chat_history",
+      returnMessages: true,
+    });
+  
+    const opts = {
+      memoryKey: "chat_history",
+      verbose: true,
+    }
+  
+    const promptArgs: ChatConversationalCreatePromptArgs = {
+      humanMessage: DEFAULT_SUFFIX,
+      systemMessage: DEFAULT_PREFIX,
+      outputParser: new IndependentChatConversationalAgentOutputParser(
+        tools.map((tool) => tool.name),
+      )
+    }
+  
+    const executor = AgentExecutor.fromAgentAndTools({
+      agent: ChatConversationalAgent.fromLLMAndTools(
+        model, 
+        tools,
+        {
+          ...promptArgs,
+        }),
+      tools,
+      memory,
+      ...opts,
+    });
+  
     const response = await executor.call({
       input,
     });

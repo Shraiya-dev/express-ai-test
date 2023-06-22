@@ -38,9 +38,9 @@ export const makeChain = (vectorstore: VectorStore, pastMessages: BaseChatMessag
     },
   );
 
-  return Promise.resolve(async function (input: string) {
+  return Promise.resolve(async function (params: { input: string; userId: string; requestId: string }) {
     const response = await chain.call({
-      question: input,
+      question: params.input,
       chat_history: pastMessages || [],
     });
 
