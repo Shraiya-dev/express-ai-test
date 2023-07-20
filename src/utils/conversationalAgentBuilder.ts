@@ -119,10 +119,6 @@ export async function makeAgent(vectorstore: VectorStore, pastMessages: BaseChat
     });
 
     const tools = [
-      new SerpAPI(process.env.SERPAPI_API_KEY, {
-        hl: "en",
-        gl: "in",
-      }),
       new Calculator(),
       makeRetrivalQATool(vectorstore, model)
     ];
