@@ -4,7 +4,7 @@ import { PineconeStore } from 'langchain/vectorstores/pinecone';
 import { makeAgent } from '../utils/conversationalAgentBuilder';
 import { initPinecone } from '../utils/pinecone-client';
 import { PINECONE_INDEX_NAME, PINECONE_NAME_SPACE } from '../config/pinecone';
-import { AgentBuilder } from '../types/chat';
+import { AgentBuilder, Message } from '../types/chat';
 import { makeChain } from '../utils/conversationalChainBuilder';
 import { getFormattedChatHistory, sanitizeQuestion } from '../utils/formatter';
 import { VectorStore } from 'langchain/vectorstores/base';
@@ -24,6 +24,26 @@ const initIndex = async () => {
         namespace: PINECONE_NAME_SPACE, //namespace comes from your config folder
       },
     );
+}
+
+const getUpdatedQuestionAndHistory = (question: string, history: Message[] ) => {
+    let updatedQuestion = question;
+    let updatedHistory = history;
+    
+    let lastValidIndex = -1
+    for (let i = history.length -1; i>=0; i--){
+        if(history[i].type === 'apiMessage'){
+            lastValidIndex = i;
+            break;
+        }
+        updatedQuestion = updatedQuestion + ", " + history[i].message;
+    }
+    
+    updatedHistory = history.slice(0, lastValidIndex +1);
+    
+    return {
+        updatedQuestion, updatedHistory
+    }
 }
 
 
@@ -48,13 +68,15 @@ const getResponse = async (
     if (!question) {
         return res.status(400).json({ message: 'No question in the request' });
     }
+    
+    const { updatedQuestion, updatedHistory } = getUpdatedQuestionAndHistory(question, history);
 
     try {
         console.log('Calling agent version ', version);
 
-        const agent = await agentBuilders[version](vectorStore, getFormattedChatHistory(history));
+        const agent = await agentBuilders[version](vectorStore, getFormattedChatHistory(updatedHistory));
 
-        const response = await agent({input: sanitizeQuestion(question), requestId, userId, userType, environment});
+        const response = await agent({input: sanitizeQuestion(updatedQuestion), requestId, userId, userType, environment});
         console.log('response', response);
         res.status(200).json({ text: response });
     } catch (error: any) {
