@@ -76,7 +76,7 @@ const getResponse = async (
 
         const agent = await agentBuilders[version](vectorStore, getFormattedChatHistory(updatedHistory));
 
-        const response = await agent({input: sanitizeQuestion(updatedQuestion), requestId, userId, userType, environment});
+        const response = await agent({input: sanitizeQuestion(updatedQuestion+ "(india)"), requestId, userId, userType, environment});
         console.log('response', response);
         res.status(200).json({ text: response });
     } catch (error: any) {
