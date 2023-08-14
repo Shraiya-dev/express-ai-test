@@ -1,10 +1,10 @@
 import { RetrievalQAChain } from 'langchain/chains';
 import { ChatOpenAI } from "langchain/chat_models/openai";
-import { AgentActionOutputParser, AgentExecutor, ChatConversationalAgent, ChatConversationalCreatePromptArgs, ChatCreatePromptArgs, ZeroShotAgent, initializeAgentExecutorWithOptions } from "langchain/agents";
+import { AgentActionOutputParser, AgentExecutor, ChatConversationalAgent, ChatConversationalCreatePromptArgs } from "langchain/agents";
 import { Calculator } from "langchain/tools/calculator";
-import { SerpAPI, ChainTool } from "langchain/tools";
+import { ChainTool, GoogleCustomSearch } from "langchain/tools";
 import { BufferWindowMemory, ChatMessageHistory } from 'langchain/memory';
-import { AgentAction, AgentFinish, BaseChatMessage, ChainValues, LLMResult } from 'langchain/schema';
+import { AgentAction, AgentFinish, BaseChatMessage } from 'langchain/schema';
 import { renderTemplate } from 'langchain/prompts';
 import { OutputParserException } from 'langchain/schema/output_parser';
 import { AIAgent } from '../types/chat';
@@ -119,8 +119,12 @@ export async function makeAgent(vectorstore: VectorStore, pastMessages: BaseChat
     });
 
     const tools = [
-      new Calculator(),
-      makeRetrivalQATool(vectorstore, model)
+        new GoogleCustomSearch({
+            apiKey: process.env.GOOGLE_CUSTOM_SEARCH_KEY,
+            googleCSEId: process.env.USTAAD_SEARCH_ENGINE_ID,
+        }),
+        new Calculator(),
+        makeRetrivalQATool(vectorstore, model)
     ];
   
     const memory = new BufferWindowMemory({
