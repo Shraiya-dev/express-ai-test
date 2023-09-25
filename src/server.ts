@@ -23,5 +23,5 @@ initIndex().then(() => {
         console.log(`🚀 App listening on the port ${PORT}`);
         console.log(`=================================`);
     });
-})
+});
 
