@@ -1,0 +1,61 @@
+name: Build,Push and Deploy to AWS Staging
+
+on:
+  push:
+    branches:
+      - staging
+
+env:
+  EKS_CLUSTER_NAME: IN-Project-Hero-App-EKSCluster-Staging
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  DEPLOYMENT_NAME: express-ai-agents
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-2
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+      
+      - name: Build, tag, and push docker image to Amazon ECR
+        env:
+           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+           REPOSITORY: in-project-hero-ecr-repo-staging/ph-image-utility
+           IMAGE_TAG: express-ai-agents
+           
+        run: |-
+            docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG .
+            docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
+            
+      - name: Configure kubectl
+        uses: azure/setup-kubectl@v1
+        with:
+          install-kubectl: true
+
+
+      - name: Update kube config
+        run: aws eks update-kubeconfig --name $EKS_CLUSTER_NAME
+
+      
+      - name: Deploy
+        env:
+         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |-                                                                    
+          cd AWS
+          kubectl apply -f .
+          kubectl rollout restart deployment/$DEPLOYMENT_NAME
+          kubectl rollout status deployment/$DEPLOYMENT_NAME
+          kubectl get services -o wide  
