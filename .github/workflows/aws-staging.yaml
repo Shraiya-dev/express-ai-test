@@ -33,7 +33,7 @@ jobs:
       - name: Build, tag, and push docker image to Amazon ECR
         env:
            REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-           REPOSITORY: in-project-hero-ecr-repo-staging/ph-image-utility
+           REPOSITORY: in-project-hero-ecr-repo-staging/express-ai-agents
            IMAGE_TAG: express-ai-agents
            
         run: |-
